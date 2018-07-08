@@ -7,7 +7,7 @@ class Widget implements WidgetContracts.IConfigurableWidget {
 
     private gitRestClient: GitRestClient.GitHttpClient4;
     private webContext: WebContext;
-    
+
     private $title: JQuery<HTMLElement>;
     private $number: JQuery<HTMLElement>;
     private $footer: JQuery<HTMLElement>;
@@ -45,18 +45,15 @@ class Widget implements WidgetContracts.IConfigurableWidget {
 
         return this.gitRestClient.getPullRequestsByProject(this.webContext.project.id, searchCriteria, 0)
             .then((requests: Contracts.GitPullRequest[]): IPromise<WidgetContracts.WidgetStatus> => {
-                if (requests && requests.length > 0) {
-
-                    let i: number, sum: number = 0;
-                    for (let request of requests) {
-                        if (request.creationDate < startDate) continue;
-                        sum += request.closedDate.getTime() - request.creationDate.getTime();
-                    }
-
-                    const labels = this.getTimeSpanDisplayLabels(sum / requests.length);
-                    this.$number.text(labels[0]);
-                    this.$footer.text(labels[1]);
+                let i: number, sum: number = 0;
+                for (let request of requests) {
+                    if (request.creationDate < startDate) continue;
+                    sum += request.closedDate.getTime() - request.creationDate.getTime();
                 }
+
+                const labels = this.getTimeSpanDisplayLabels(sum / requests.length);
+                this.$number.text(labels[0]);
+                this.$footer.text(labels[1]);
 
                 return WidgetHelpers.WidgetStatusHelper.Success();
             }, error => {

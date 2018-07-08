@@ -5,9 +5,9 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers", "TFS/VersionContro
         function Widget() {
             this.gitRestClient = GitRestClient.getClient();
             this.webContext = VSS.getWebContext();
-            this.$title = $('h3.title');
-            this.$number = $('div.big-count');
-            this.$subtext = $('div.content');
+            this.$title = $('.title');
+            this.$number = $('.big-count');
+            this.$footer = $('.footer');
         }
         Widget.prototype.preload = function (widgetSettings) {
             return WidgetHelpers.WidgetStatusHelper.Success();
@@ -40,7 +40,7 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers", "TFS/VersionContro
                     }
                     var labels = _this.getTimeSpanDisplayLabels(sum / requests.length);
                     _this.$number.text(labels[0]);
-                    _this.$subtext.text(labels[1]);
+                    _this.$footer.text(labels[1]);
                 }
                 return WidgetHelpers.WidgetStatusHelper.Success();
             }, function (error) {

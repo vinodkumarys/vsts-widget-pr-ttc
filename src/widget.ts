@@ -10,14 +10,14 @@ class Widget implements WidgetContracts.IConfigurableWidget {
     
     private $title: JQuery<HTMLElement>;
     private $number: JQuery<HTMLElement>;
-    private $subtext: JQuery<HTMLElement>;
+    private $footer: JQuery<HTMLElement>;
 
     constructor() {
         this.gitRestClient = GitRestClient.getClient();
         this.webContext = VSS.getWebContext();
-        this.$title = $('h3.title');
-        this.$number = $('div.big-count');
-        this.$subtext = $('div.content');
+        this.$title = $('.title');
+        this.$number = $('.big-count');
+        this.$footer = $('.footer');
     }
 
     preload(widgetSettings: WidgetContracts.WidgetSettings): IPromise<WidgetContracts.WidgetStatus> {
@@ -55,7 +55,7 @@ class Widget implements WidgetContracts.IConfigurableWidget {
 
                     const labels = this.getTimeSpanDisplayLabels(sum / requests.length);
                     this.$number.text(labels[0]);
-                    this.$subtext.text(labels[1]);
+                    this.$footer.text(labels[1]);
                 }
 
                 return WidgetHelpers.WidgetStatusHelper.Success();

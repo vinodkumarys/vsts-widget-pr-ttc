@@ -1,0 +1,78 @@
+{
+    "manifestVersion": 1,
+    "publisher": "<publisher>",
+    "id": "pr-completion-time",
+    "version": "1.0.44",
+    "name": "PR TTC",
+    "description": "Adds a dashboard widget to display average time taken to close pull requests.",
+    "public": false,
+    "categories": [
+        "Code"
+    ],
+    "targets": [
+        {
+            "id": "Microsoft.VisualStudio.Services"
+        }
+    ],
+    "contributions": [
+        {
+            "id": "avg-pr-completion-time-widget",
+            "type": "ms.vss-dashboards-web.widget",
+            "targets": [
+                "ms.vss-dashboards-web.widget-catalog",
+                "<publisher>.pr-completion-time.avg-pr-completion-time-widget-configuration"
+            ],
+            "properties": {
+                "name": "Avg. PR TTC",
+                "description": "Average PR Time To Complete widget",
+                "catalogIconUrl": "static/img/logo.png",
+                "previewImageUrl": "static/img/preview.png",
+                "uri": "static/widget.html",
+                "isNameConfigurable": true,
+                "supportedSizes": [
+                    {
+                        "rowSpan": 1,
+                        "columnSpan": 1
+                    },
+                    {
+                        "rowSpan": 1,
+                        "columnSpan": 2
+                    }
+                ],
+                "supportedScopes": [
+                    "project_team"
+                ]
+            }
+        },
+        {
+            "id": "avg-pr-completion-time-widget-configuration",
+            "type": "ms.vss-dashboards-web.widget-configuration",
+            "targets": [
+                "ms.vss-dashboards-web.widget-configuration"
+            ],
+            "properties": {
+                "name": "Average PR completion time widget configuration",
+                "description": "Average PR completion time widget configuration",
+                "uri": "static/configuration.html"
+            }
+        }
+    ],
+    "scopes": [
+        "vso.code"
+    ],
+    "files": [
+        {
+            "path": "node_modules/vss-web-extension-sdk/lib",
+            "addressable": true,
+            "packagePath": "lib"
+        },
+        {
+            "path": "dist",
+            "addressable": true
+        },
+        {
+            "path": "static",
+            "addressable": true
+        }
+    ]
+}

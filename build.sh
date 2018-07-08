@@ -1,0 +1,1 @@
+tsc && tfx extension create --manifest-globs vss-extension.json --output-path output

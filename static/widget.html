@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="../lib/VSS.SDK.min.js"></script>
+</head>
+
+<body>
+    <div class="widget">
+        <h3 class="title">Avg. PR TTC</h3>
+        <div class="big-count">N/A</div>
+        <div class="content"></div>
+    </div>
+
+    <script type="text/javascript">
+        VSS.init({
+            usePlatformScripts: true,
+            usePlatformStyles: true,
+            explicitNotifyLoaded: true
+        });
+
+        VSS.require(["dist/widget"], function (widget) {
+            VSS.register("avg-pr-completion-time-widget", function () { return widget.createWidget(); });
+            VSS.notifyLoadSucceeded();
+        });
+    </script>
+</body>
+
+</html>

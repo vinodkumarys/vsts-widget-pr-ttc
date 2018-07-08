@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="../lib/VSS.SDK.min.js"></script>
+</head>
+
+<body>
+    <div class="widget-configuration">
+        <div class="dropdown">
+            <label>Duration</label>
+            <div class="wrapper">
+                <select id="duration-dropdown">
+                    <option value="7">Last 7 days</option>
+                    <option value="30">Last 30 days</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        VSS.init({
+            usePlatformScripts: true,
+            usePlatformStyles: true,
+            explicitNotifyLoaded: true
+        });
+
+        VSS.require(["dist/configuration"], function (configuration) {
+            VSS.register("avg-pr-completion-time-widget-configuration", function () { return configuration.createWidgetConfiguration(); });
+            VSS.notifyLoadSucceeded();
+        });
+    </script>
+</body>
+
+</html>

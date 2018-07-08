@@ -4,18 +4,24 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers"], function (require
     var WidgetConfiguration = /** @class */ (function () {
         function WidgetConfiguration() {
             this.$durationDropdown = $('#duration-dropdown');
+            this.$repositoryInput = $('#repository-input');
         }
         WidgetConfiguration.prototype.load = function (widgetSettings, widgetConfigurationContext) {
             var _this = this;
             var settings = JSON.parse(widgetSettings.customSettings.data);
-            if (settings && settings.duration) {
-                this.$durationDropdown.val(settings.duration);
+            if (settings) {
+                if (settings.duration)
+                    this.$durationDropdown.val(settings.duration);
+                if (settings.repository)
+                    this.$repositoryInput.val(settings.repository);
             }
-            this.$durationDropdown.on('change', function () {
+            var notifyChange = function () {
                 var eventName = WidgetHelpers.WidgetEvent.ConfigurationChange;
                 var eventArgs = WidgetHelpers.WidgetEvent.Args(_this.getNewSettings());
                 widgetConfigurationContext.notify(eventName, eventArgs);
-            });
+            };
+            this.$durationDropdown.on('change', notifyChange);
+            this.$repositoryInput.on('change', notifyChange);
             return WidgetHelpers.WidgetStatusHelper.Success();
         };
         WidgetConfiguration.prototype.onSave = function () {
@@ -24,7 +30,8 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers"], function (require
         WidgetConfiguration.prototype.getNewSettings = function () {
             var customSettings = {
                 data: JSON.stringify({
-                    duration: this.$durationDropdown.val()
+                    duration: this.$durationDropdown.val(),
+                    repository: this.$repositoryInput.val()
                 })
             };
             return customSettings;

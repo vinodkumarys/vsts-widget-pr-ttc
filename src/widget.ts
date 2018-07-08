@@ -30,6 +30,7 @@ class Widget implements WidgetContracts.IConfigurableWidget {
 
         const startDate = new Date(), settings = JSON.parse(widgetSettings.customSettings.data);
         const daysToConsider = settings && !isNaN(settings.duration) ? parseInt(settings.duration) : 30;
+        const repository = settings && settings.repository ? settings.repository.trim() : '';
         startDate.setDate(startDate.getDate() - daysToConsider);
 
         const searchCriteria: Contracts.GitPullRequestSearchCriteria = {
@@ -43,18 +44,11 @@ class Widget implements WidgetContracts.IConfigurableWidget {
             status: Contracts.PullRequestStatus.Completed
         };
 
-        return this.gitRestClient.getPullRequestsByProject(this.webContext.project.id, searchCriteria, 0)
-            .then((requests: Contracts.GitPullRequest[]): IPromise<WidgetContracts.WidgetStatus> => {
-                let i: number, sum: number = 0;
-                for (let request of requests) {
-                    if (request.creationDate < startDate) continue;
-                    sum += request.closedDate.getTime() - request.creationDate.getTime();
-                }
-
-                const labels = this.getTimeSpanDisplayLabels(sum / requests.length);
-                this.$number.text(labels[0]);
-                this.$footer.text(labels[1]);
-
+        return (repository.length > 0
+            ? this.gitRestClient.getPullRequests(repository, searchCriteria, this.webContext.project.id, 0)
+            : this.gitRestClient.getPullRequestsByProject(this.webContext.project.id, searchCriteria, 0))
+            .then((pullRequests: Contracts.GitPullRequest[]): IPromise<WidgetContracts.WidgetStatus> => {
+                this.processResponse(pullRequests, startDate);
                 return WidgetHelpers.WidgetStatusHelper.Success();
             }, error => {
                 return WidgetHelpers.WidgetStatusHelper.Failure(error);
@@ -63,6 +57,18 @@ class Widget implements WidgetContracts.IConfigurableWidget {
 
     reload(newWidgetSettings: WidgetContracts.WidgetSettings): IPromise<WidgetContracts.WidgetStatus> {
         return this.load(newWidgetSettings);
+    }
+
+    private processResponse(pullRequests: Contracts.GitPullRequest[], startDate: Date) {
+        let i: number, sum: number = 0;
+        for (let request of pullRequests) {
+            if (request.creationDate < startDate) continue;
+            sum += request.closedDate.getTime() - request.creationDate.getTime();
+        }
+
+        const labels = this.getTimeSpanDisplayLabels(sum / pullRequests.length);
+        this.$number.text(labels[0]);
+        this.$footer.text(labels[1]);
     }
 
     private getTimeSpanDisplayLabels(time: number) {

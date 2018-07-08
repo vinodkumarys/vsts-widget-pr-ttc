@@ -17,6 +17,7 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers", "TFS/VersionContro
             this.$title.text(widgetSettings.name);
             var startDate = new Date(), settings = JSON.parse(widgetSettings.customSettings.data);
             var daysToConsider = settings && !isNaN(settings.duration) ? parseInt(settings.duration) : 30;
+            var repository = settings && settings.repository ? settings.repository.trim() : '';
             startDate.setDate(startDate.getDate() - daysToConsider);
             var searchCriteria = {
                 creatorId: '',
@@ -28,20 +29,11 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers", "TFS/VersionContro
                 targetRefName: '',
                 status: Contracts.PullRequestStatus.Completed
             };
-            return this.gitRestClient.getPullRequestsByProject(this.webContext.project.id, searchCriteria, 0)
-                .then(function (requests) {
-                if (requests && requests.length > 0) {
-                    var i = void 0, sum = 0;
-                    for (var _i = 0, requests_1 = requests; _i < requests_1.length; _i++) {
-                        var request = requests_1[_i];
-                        if (request.creationDate < startDate)
-                            continue;
-                        sum += request.closedDate.getTime() - request.creationDate.getTime();
-                    }
-                    var labels = _this.getTimeSpanDisplayLabels(sum / requests.length);
-                    _this.$number.text(labels[0]);
-                    _this.$footer.text(labels[1]);
-                }
+            return (repository.length > 0
+                ? this.gitRestClient.getPullRequests(repository, searchCriteria, this.webContext.project.id, 0)
+                : this.gitRestClient.getPullRequestsByProject(this.webContext.project.id, searchCriteria, 0))
+                .then(function (pullRequests) {
+                _this.processResponse(pullRequests, startDate);
                 return WidgetHelpers.WidgetStatusHelper.Success();
             }, function (error) {
                 return WidgetHelpers.WidgetStatusHelper.Failure(error);
@@ -49,6 +41,18 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers", "TFS/VersionContro
         };
         Widget.prototype.reload = function (newWidgetSettings) {
             return this.load(newWidgetSettings);
+        };
+        Widget.prototype.processResponse = function (pullRequests, startDate) {
+            var i, sum = 0;
+            for (var _i = 0, pullRequests_1 = pullRequests; _i < pullRequests_1.length; _i++) {
+                var request = pullRequests_1[_i];
+                if (request.creationDate < startDate)
+                    continue;
+                sum += request.closedDate.getTime() - request.creationDate.getTime();
+            }
+            var labels = this.getTimeSpanDisplayLabels(sum / pullRequests.length);
+            this.$number.text(labels[0]);
+            this.$footer.text(labels[1]);
         };
         Widget.prototype.getTimeSpanDisplayLabels = function (time) {
             if (!time || time <= 0)

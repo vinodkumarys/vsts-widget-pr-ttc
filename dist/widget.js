@@ -50,7 +50,7 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers", "TFS/VersionContro
                         : client.getPullRequestsByProject(projectId, searchCriteria, 0, skip, top))
                         .then(function (prs) {
                         // check if oldest PR creation date is still newer/after the start date
-                        if (prs.length > 0 && prs[prs.length - 1].creationDate > startDate) {
+                        if (prs.length >= top && prs[prs.length - 1].creationDate > startDate) {
                             pullRequests = pullRequests.concat(prs);
                             skip += top;
                             fetch();

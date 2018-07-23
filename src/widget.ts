@@ -44,11 +44,9 @@ class Widget implements WidgetContracts.IConfigurableWidget {
             status: Contracts.PullRequestStatus.Completed
         };
 
-        return (repository.length > 0
-            ? this.gitRestClient.getPullRequests(repository, searchCriteria, this.webContext.project.id, 0)
-            : this.gitRestClient.getPullRequestsByProject(this.webContext.project.id, searchCriteria, 0))
+        return (this.getPullRequests(startDate, this.webContext.project.id, repository, searchCriteria))
             .then((pullRequests: Contracts.GitPullRequest[]): IPromise<WidgetContracts.WidgetStatus> => {
-                this.processResponse(pullRequests, startDate);
+                this.processPullRequests(pullRequests);
                 return WidgetHelpers.WidgetStatusHelper.Success();
             }, error => {
                 return WidgetHelpers.WidgetStatusHelper.Failure(error);
@@ -59,10 +57,36 @@ class Widget implements WidgetContracts.IConfigurableWidget {
         return this.load(newWidgetSettings);
     }
 
-    private processResponse(pullRequests: Contracts.GitPullRequest[], startDate: Date) {
-        let i: number, sum: number = 0;
+    private getPullRequests(startDate: Date, projectId: string, repository: string,
+        searchCriteria: Contracts.GitPullRequestSearchCriteria): Promise<Contracts.GitPullRequest[]> {
+        let skip = 0, top = 50, pullRequests = new Array<Contracts.GitPullRequest>();
+        const client = this.gitRestClient;
+
+        return new Promise((resolve, reject) => {
+            const fetch = () => {
+                (repository.length > 0
+                    ? client.getPullRequests(repository, searchCriteria, projectId, 0, skip, top)
+                    : client.getPullRequestsByProject(projectId, searchCriteria, 0, skip, top))
+                .then(prs => {
+                    // check if oldest PR creation date is still newer/after the start date
+                    if (prs.length > 0 && prs[prs.length - 1].creationDate > startDate) {
+                        pullRequests = pullRequests.concat(prs);
+                        skip += top;
+                        fetch();
+                    } else {
+                        pullRequests = pullRequests.concat(prs.filter(pr => pr.creationDate >= startDate));
+                        resolve(pullRequests);
+                    }
+                }, err => reject(err));
+            };
+
+            fetch();
+        });
+    }
+
+    private processPullRequests(pullRequests: Contracts.GitPullRequest[]) {
+        let sum: number = 0;
         for (let request of pullRequests) {
-            if (request.creationDate < startDate) continue;
             sum += request.closedDate.getTime() - request.creationDate.getTime();
         }
 

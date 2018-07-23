@@ -9,6 +9,7 @@
     "moduleResolution": "node",
     "types": [
       "vss-web-extension-sdk"
-    ],
+    ], 
+    "lib": ["es5", "es2015", "dom", "scripthost"]
   }
 }

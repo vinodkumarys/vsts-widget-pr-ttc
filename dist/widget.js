@@ -29,11 +29,9 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers", "TFS/VersionContro
                 targetRefName: '',
                 status: Contracts.PullRequestStatus.Completed
             };
-            return (repository.length > 0
-                ? this.gitRestClient.getPullRequests(repository, searchCriteria, this.webContext.project.id, 0)
-                : this.gitRestClient.getPullRequestsByProject(this.webContext.project.id, searchCriteria, 0))
+            return (this.getPullRequests(startDate, this.webContext.project.id, repository, searchCriteria))
                 .then(function (pullRequests) {
-                _this.processResponse(pullRequests, startDate);
+                _this.processPullRequests(pullRequests);
                 return WidgetHelpers.WidgetStatusHelper.Success();
             }, function (error) {
                 return WidgetHelpers.WidgetStatusHelper.Failure(error);
@@ -42,12 +40,34 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers", "TFS/VersionContro
         Widget.prototype.reload = function (newWidgetSettings) {
             return this.load(newWidgetSettings);
         };
-        Widget.prototype.processResponse = function (pullRequests, startDate) {
-            var i, sum = 0;
+        Widget.prototype.getPullRequests = function (startDate, projectId, repository, searchCriteria) {
+            var skip = 0, top = 50, pullRequests = new Array();
+            var client = this.gitRestClient;
+            return new Promise(function (resolve, reject) {
+                var fetch = function () {
+                    (repository.length > 0
+                        ? client.getPullRequests(repository, searchCriteria, projectId, 0, skip, top)
+                        : client.getPullRequestsByProject(projectId, searchCriteria, 0, skip, top))
+                        .then(function (prs) {
+                        // check if oldest PR creation date is still newer/after the start date
+                        if (prs.length > 0 && prs[prs.length - 1].creationDate > startDate) {
+                            pullRequests = pullRequests.concat(prs);
+                            skip += top;
+                            fetch();
+                        }
+                        else {
+                            pullRequests = pullRequests.concat(prs.filter(function (pr) { return pr.creationDate >= startDate; }));
+                            resolve(pullRequests);
+                        }
+                    }, function (err) { return reject(err); });
+                };
+                fetch();
+            });
+        };
+        Widget.prototype.processPullRequests = function (pullRequests) {
+            var sum = 0;
             for (var _i = 0, pullRequests_1 = pullRequests; _i < pullRequests_1.length; _i++) {
                 var request = pullRequests_1[_i];
-                if (request.creationDate < startDate)
-                    continue;
                 sum += request.closedDate.getTime() - request.creationDate.getTime();
             }
             var labels = this.getTimeSpanDisplayLabels(sum / pullRequests.length);

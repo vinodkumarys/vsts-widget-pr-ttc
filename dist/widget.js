@@ -15,9 +15,20 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers", "TFS/VersionContro
         Widget.prototype.load = function (widgetSettings) {
             var _this = this;
             this.$title.text(widgetSettings.name);
+            var defaultDurationDays = 30;
+            var defaultPageSize = 1000;
+            var defaultMaxPullRequestsToQuery = 500;
+            var MaxPullRequestsToQueryLimit = 5000;
             var startDate = new Date(), settings = JSON.parse(widgetSettings.customSettings.data);
-            var daysToConsider = settings && !isNaN(settings.duration) ? parseInt(settings.duration) : 30;
+            var daysToConsider = settings && !isNaN(settings.duration) ? parseInt(settings.duration) : defaultDurationDays;
             var repository = settings && settings.repository ? settings.repository.trim() : '';
+            // we need to cap the number of items we pull from the API
+            var maxPullRequestsToQuery = settings && settings.maxPullRequestsToQuery
+                && !isNaN(settings.maxPullRequestsToQuery)
+                && parseInt(settings.maxPullRequestsToQuery) > 0
+                ? Math.min(parseInt(settings.maxPullRequestsToQuery), MaxPullRequestsToQueryLimit) : defaultMaxPullRequestsToQuery;
+            // the API seems to return only max 1000 items 
+            var pageSize = Math.min(maxPullRequestsToQuery, defaultPageSize);
             startDate.setDate(startDate.getDate() - daysToConsider);
             var searchCriteria = {
                 creatorId: '',
@@ -29,7 +40,7 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers", "TFS/VersionContro
                 targetRefName: '',
                 status: Contracts.PullRequestStatus.Completed
             };
-            return (this.getPullRequests(startDate, this.webContext.project.id, repository, searchCriteria))
+            return (this.getPullRequests(startDate, this.webContext.project.id, repository, maxPullRequestsToQuery, pageSize, searchCriteria))
                 .then(function (pullRequests) {
                 _this.processPullRequests(pullRequests);
                 return WidgetHelpers.WidgetStatusHelper.Success();
@@ -40,19 +51,23 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers", "TFS/VersionContro
         Widget.prototype.reload = function (newWidgetSettings) {
             return this.load(newWidgetSettings);
         };
-        Widget.prototype.getPullRequests = function (startDate, projectId, repository, searchCriteria) {
-            var skip = 0, top = 50, pullRequests = new Array();
+        Widget.prototype.getPullRequests = function (startDate, projectId, repository, maxPullRequestsToQuery, pageSize, searchCriteria) {
+            var skip = 0, pullRequests = new Array();
             var client = this.gitRestClient;
             return new Promise(function (resolve, reject) {
                 var fetch = function () {
+                    console.log("Fetching: Repo: [" + (repository || 'N/A') + "] Project: [" + projectId + "] Skip: [" + skip + "] PageSize: [" + pageSize + "] ");
                     (repository.length > 0
-                        ? client.getPullRequests(repository, searchCriteria, projectId, 0, skip, top)
-                        : client.getPullRequestsByProject(projectId, searchCriteria, 0, skip, top))
+                        ? client.getPullRequests(repository, searchCriteria, projectId, 0, skip, pageSize)
+                        : client.getPullRequestsByProject(projectId, searchCriteria, 0, skip, pageSize))
                         .then(function (prs) {
+                        if (prs.length > 0) {
+                            console.log("Fetched: Count: " + prs.length + " From: " + prs[0].creationDate + " To: " + prs[prs.length - 1].creationDate);
+                        }
+                        skip += prs.length;
                         // check if oldest PR creation date is still newer/after the start date
-                        if (prs.length >= top && prs[prs.length - 1].creationDate > startDate) {
+                        if (prs.length >= pageSize && prs[prs.length - 1].creationDate > startDate && skip < maxPullRequestsToQuery) {
                             pullRequests = pullRequests.concat(prs);
-                            skip += prs.length;
                             fetch();
                         }
                         else {

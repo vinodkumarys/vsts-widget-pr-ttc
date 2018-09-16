@@ -6,12 +6,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/jquery": "^3.3.4",
-    "@types/q": "^1.5.0",
+    "@types/jquery": "^3.3.6",
+    "@types/q": "^1.5.1",
     "vss-web-extension-sdk": "^5.134.0"
   },
   "devDependencies": {
-    "tfx-cli": "^0.5.14",
+    "tfx-cli": "^0.6.1",
     "typescript": "^2.9.2"
   }
 }

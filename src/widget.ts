@@ -28,9 +28,24 @@ class Widget implements WidgetContracts.IConfigurableWidget {
 
         this.$title.text(widgetSettings.name);
 
+        const defaultDurationDays = 30
+        const defaultPageSize = 1000;
+        const defaultMaxPullRequestsToQuery = 500;
+        const MaxPullRequestsToQueryLimit = 5000;
+
         const startDate = new Date(), settings = JSON.parse(widgetSettings.customSettings.data);
-        const daysToConsider = settings && !isNaN(settings.duration) ? parseInt(settings.duration) : 30;
+        const daysToConsider = settings && !isNaN(settings.duration) ? parseInt(settings.duration) : defaultDurationDays;
         const repository = settings && settings.repository ? settings.repository.trim() : '';
+
+        // we need to cap the number of items we pull from the API
+        const maxPullRequestsToQuery = settings && settings.maxPullRequestsToQuery
+            && !isNaN(settings.maxPullRequestsToQuery) 
+            && parseInt(settings.maxPullRequestsToQuery) > 0
+            ? Math.min(parseInt(settings.maxPullRequestsToQuery), MaxPullRequestsToQueryLimit) : defaultMaxPullRequestsToQuery;
+        
+        // the API seems to return only max 1000 items 
+        const pageSize = Math.min(maxPullRequestsToQuery, defaultPageSize);
+
         startDate.setDate(startDate.getDate() - daysToConsider);
 
         const searchCriteria: Contracts.GitPullRequestSearchCriteria = {
@@ -44,7 +59,7 @@ class Widget implements WidgetContracts.IConfigurableWidget {
             status: Contracts.PullRequestStatus.Completed
         };
 
-        return (this.getPullRequests(startDate, this.webContext.project.id, repository, searchCriteria))
+        return (this.getPullRequests(startDate, this.webContext.project.id, repository, maxPullRequestsToQuery, pageSize, searchCriteria))
             .then((pullRequests: Contracts.GitPullRequest[]): IPromise<WidgetContracts.WidgetStatus> => {
                 this.processPullRequests(pullRequests);
                 return WidgetHelpers.WidgetStatusHelper.Success();
@@ -57,21 +72,27 @@ class Widget implements WidgetContracts.IConfigurableWidget {
         return this.load(newWidgetSettings);
     }
 
-    private getPullRequests(startDate: Date, projectId: string, repository: string,
-        searchCriteria: Contracts.GitPullRequestSearchCriteria): Promise<Contracts.GitPullRequest[]> {
-        let skip = 0, top = 50, pullRequests = new Array<Contracts.GitPullRequest>();
+    private getPullRequests(startDate: Date, projectId: string, repository: string, maxPullRequestsToQuery: number,
+        pageSize: number, searchCriteria: Contracts.GitPullRequestSearchCriteria): Promise<Contracts.GitPullRequest[]> {
+        let skip = 0, pullRequests = new Array<Contracts.GitPullRequest>();
         const client = this.gitRestClient;
 
         return new Promise((resolve, reject) => {
             const fetch = () => {
+                console.log(`Fetching: Repo: [${repository || 'N/A'}] Project: [${projectId}] Skip: [${skip}] PageSize: [${pageSize}] `);
+
                 (repository.length > 0
-                    ? client.getPullRequests(repository, searchCriteria, projectId, 0, skip, top)
-                    : client.getPullRequestsByProject(projectId, searchCriteria, 0, skip, top))
+                    ? client.getPullRequests(repository, searchCriteria, projectId, 0, skip, pageSize)
+                    : client.getPullRequestsByProject(projectId, searchCriteria, 0, skip, pageSize))
                 .then(prs => {
+                    if(prs.length > 0) {
+                        console.log(`Fetched: Count: ${prs.length} From: ${prs[0].creationDate} To: ${prs[prs.length - 1].creationDate}`);
+                    }
+                    skip += prs.length;
+
                     // check if oldest PR creation date is still newer/after the start date
-                    if (prs.length >= top && prs[prs.length - 1].creationDate > startDate) {
+                    if (prs.length >= pageSize && prs[prs.length - 1].creationDate > startDate && skip < maxPullRequestsToQuery) {
                         pullRequests = pullRequests.concat(prs);
-                        skip += prs.length;
                         fetch();
                     } else {
                         pullRequests = pullRequests.concat(prs.filter(pr => pr.creationDate >= startDate));

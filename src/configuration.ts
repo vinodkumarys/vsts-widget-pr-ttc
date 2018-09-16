@@ -5,10 +5,12 @@ class WidgetConfiguration implements WidgetContracts.IWidgetConfiguration {
 
     private $durationDropdown: JQuery<HTMLElement>;
     private $repositoryInput: JQuery<HTMLElement>;
+    private $maxPullRequestsToQueryInput: JQuery<HTMLElement>;
 
     constructor() {
         this.$durationDropdown = $('#duration-dropdown');
         this.$repositoryInput = $('#repository-input');
+        this.$maxPullRequestsToQueryInput = $('#maxpullrequeststoquery-input');
     }
 
     load(widgetSettings: WidgetContracts.WidgetSettings, widgetConfigurationContext: WidgetContracts.IWidgetConfigurationContext): IPromise<WidgetContracts.WidgetStatus> {
@@ -16,6 +18,7 @@ class WidgetConfiguration implements WidgetContracts.IWidgetConfiguration {
         if (settings) {
             if(settings.duration) this.$durationDropdown.val(settings.duration);
             if(settings.repository) this.$repositoryInput.val(settings.repository);
+            if(settings.maxPullRequestsToQuery) this.$maxPullRequestsToQueryInput.val(settings.maxPullRequestsToQuery);
         }
 
         const notifyChange = () => {
@@ -26,6 +29,7 @@ class WidgetConfiguration implements WidgetContracts.IWidgetConfiguration {
 
         this.$durationDropdown.on('change', notifyChange);
         this.$repositoryInput.on('change', notifyChange);
+        this.$maxPullRequestsToQueryInput.on('change', notifyChange);
 
         return WidgetHelpers.WidgetStatusHelper.Success();
     }
@@ -38,7 +42,8 @@ class WidgetConfiguration implements WidgetContracts.IWidgetConfiguration {
         const customSettings = {
             data: JSON.stringify({
                 duration: this.$durationDropdown.val(),
-                repository: this.$repositoryInput.val()
+                repository: this.$repositoryInput.val(),
+                maxPullRequestsToQuery: this.$maxPullRequestsToQueryInput.val(),
             })
         };
 

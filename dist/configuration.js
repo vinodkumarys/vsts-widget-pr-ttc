@@ -5,6 +5,7 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers"], function (require
         function WidgetConfiguration() {
             this.$durationDropdown = $('#duration-dropdown');
             this.$repositoryInput = $('#repository-input');
+            this.$maxPullRequestsToQueryInput = $('#maxpullrequeststoquery-input');
         }
         WidgetConfiguration.prototype.load = function (widgetSettings, widgetConfigurationContext) {
             var _this = this;
@@ -14,6 +15,8 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers"], function (require
                     this.$durationDropdown.val(settings.duration);
                 if (settings.repository)
                     this.$repositoryInput.val(settings.repository);
+                if (settings.maxPullRequestsToQuery)
+                    this.$maxPullRequestsToQueryInput.val(settings.maxPullRequestsToQuery);
             }
             var notifyChange = function () {
                 var eventName = WidgetHelpers.WidgetEvent.ConfigurationChange;
@@ -22,6 +25,7 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers"], function (require
             };
             this.$durationDropdown.on('change', notifyChange);
             this.$repositoryInput.on('change', notifyChange);
+            this.$maxPullRequestsToQueryInput.on('change', notifyChange);
             return WidgetHelpers.WidgetStatusHelper.Success();
         };
         WidgetConfiguration.prototype.onSave = function () {
@@ -31,7 +35,8 @@ define(["require", "exports", "TFS/Dashboards/WidgetHelpers"], function (require
             var customSettings = {
                 data: JSON.stringify({
                     duration: this.$durationDropdown.val(),
-                    repository: this.$repositoryInput.val()
+                    repository: this.$repositoryInput.val(),
+                    maxPullRequestsToQuery: this.$maxPullRequestsToQueryInput.val(),
                 })
             };
             return customSettings;
